@@ -1,39 +1,87 @@
-<!doctype html><html><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090c15"><link rel="manifest" href="manifest.webmanifest"><title>Red Thread</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111318">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Red Thread</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#090c15;color:#edf0f7;font-family:system-ui,sans-serif}
-#board{position:fixed;inset:0;width:100%;height:100%}.top{position:fixed;top:0;left:0;right:0;padding:18px;display:flex;justify-content:space-between;z-index:5;pointer-events:none}
-.title{font-size:14px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}.status{font-size:12px;color:#aab2c4}
-.panel{position:fixed;left:12px;right:12px;bottom:12px;z-index:10;background:rgba(16,20,32,.94);border:1px solid #2a3142;border-radius:20px;padding:12px}
-textarea{display:block;width:100%;height:82px;background:transparent;border:0;outline:0;resize:none;color:#edf0f7;font:16px/1.45 system-ui;padding:4px}
-textarea::placeholder{color:#778197}.nudge{display:none;border-left:2px solid #d34b5c;margin:3px 0 10px;padding:7px 10px;font-size:14px;color:#dfe4ee}
-.row{display:flex;gap:7px;flex-wrap:wrap}button{border:1px solid #30394e;background:#1a2131;color:#edf0f7;border-radius:12px;padding:10px 13px;font:600 14px system-ui}
-.primary{background:#c94658;border-color:#c94658}.active{outline:2px solid #d96a77}.small{font-size:12px;color:#9da6b9;margin-top:8px}
-</style></head><body>
-<canvas id="board"></canvas><div class="top"><div class="title">Red Thread</div><div id="status" class="status">Ready</div></div>
-<div class="panel"><textarea id="input" placeholder="Start with whatever is in your head..."></textarea><div id="nudge" class="nudge"></div>
-<div class="row"><button id="voice" class="primary">Talk</button><button id="add">Add thought</button><button id="quiet">Don't interrupt</button><button id="clear">Clear</button></div>
-<div class="small">Your thoughts are saved on this device.</div></div>
+:root{color-scheme:dark;--bg:#111318;--panel:#1b1e26;--line:#353a46;--ink:#f2f0eb;--muted:#a9adba;--red:#e14e58;--gold:#e7c77a}
+*{box-sizing:border-box} body{margin:0;background:radial-gradient(ellipse at 50% 0%,#24212a 0%,var(--bg) 55%);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{padding:22px 18px 12px;max-width:1000px;margin:auto} .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--red);font-weight:700}
+h1{font-size:30px;letter-spacing:-.04em;margin:4px 0} .sub{color:var(--muted);margin:0}
+main{max-width:1000px;margin:auto;padding:8px 14px 32px}
+.panel{background:rgba(27,30,38,.92);border:1px solid var(--line);border-radius:16px;padding:14px;margin:12px 0}
+label{display:block;color:var(--muted);font-size:13px;margin-bottom:7px}
+textarea,input,select{width:100%;background:#101218;color:var(--ink);border:1px solid #444957;border-radius:10px;padding:12px;font:inherit;outline:none}
+textarea:focus,input:focus,select:focus{border-color:var(--red)} textarea{resize:vertical;min-height:78px}
+button{background:var(--red);color:white;border:0;border-radius:10px;padding:11px 15px;font:600 14px system-ui;cursor:pointer}
+button.secondary{background:#292d37;border:1px solid #454b59;color:var(--ink)} button.danger{background:#3a2027;color:#ffdce0;border:1px solid #71343c}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.small{font-size:12px;color:var(--muted)}
+.board{position:relative;height:410px;overflow:hidden;border-radius:14px;background:radial-gradient(circle at 50% 50%,#23232c 0%,#15171d 72%);border:1px solid #363945;touch-action:pan-y}
+#threads{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.node{position:absolute;width:140px;min-height:66px;display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;border-radius:14px;background:#282630;border:1px solid #65505b;box-shadow:0 8px 24px #0005;cursor:pointer;overflow-wrap:anywhere;font-size:13px;user-select:none;touch-action:none}
+.node.selected{border:2px solid var(--gold);box-shadow:0 0 0 3px #e7c77a22}
+.node .dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--red);top:7px;right:8px}
+.boardhint{position:absolute;bottom:10px;left:12px;color:#8e93a2;font-size:11px;pointer-events:none}
+.list{display:grid;gap:8px}.thought{padding:11px;border:1px solid var(--line);border-radius:10px;background:#15171d;display:flex;gap:10px;align-items:flex-start}.thought .body{flex:1;white-space:pre-wrap;overflow-wrap:anywhere}.thought button{padding:6px 9px;font-size:12px}
+footer{text-align:center;color:#777d8b;font-size:11px;padding:8px 0 24px}
+@media(min-width:700px){.columns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.board{height:470px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">A place to follow the thread</div><h1>Red Thread</h1><p class="sub">Help people explore what they think, not just what they know.</p></header>
+<main>
+<section class="panel">
+<label for="thoughtInput">Where should we start?</label>
+<textarea id="thoughtInput" placeholder="Drop in a thought, question, observation, or loose end..."></textarea>
+<div class="actions"><button id="addBtn">Add thought</button><button class="secondary" id="connectBtn">Connect two thoughts</button><button class="secondary" id="clearSelectionBtn">Clear selection</button></div>
+<p class="small" id="status" aria-live="polite">Your thoughts stay in this browser on this device.</p>
+</section>
+<div class="columns">
+<section class="panel"><h2 style="font-size:17px;margin:0 0 10px">Constellation</h2><div class="board" id="board"><svg id="threads"><g id="lines"></g></svg><div class="boardhint">Tap a thought to select it. Drag to move it.</div></div></section>
+<section class="panel"><h2 style="font-size:17px;margin:0 0 10px">Your threads</h2><div id="thoughtList" class="list"></div><p class="small">Select two thoughts, then choose “Connect two thoughts” to draw a line between them.</p></section>
+</div>
+<footer>Red Thread prototype · Saved locally in this browser</footer>
+</main>
 <script>
-const input=document.getElementById('input'),board=document.getElementById('board'),ctx=board.getContext('2d'),status=document.getElementById('status'),nudge=document.getElementById('nudge'),voice=document.getElementById('voice'),quietBtn=document.getElementById('quiet');
-let thoughts=[];let quiet=false;let nudgeTimer=null;let recognition=null;let listening=false;
-try{thoughts=JSON.parse(localStorage.getItem('red-thread-thoughts')||'[]')}catch(e){thoughts=[]}
-function save(){localStorage.setItem('red-thread-thoughts',JSON.stringify(thoughts))}
-function resize(){const d=devicePixelRatio||1;board.width=innerWidth*d;board.height=innerHeight*d;board.style.width=innerWidth+'px';board.style.height=innerHeight+'px';ctx.setTransform(d,0,0,d,0,0);draw()}
-function addThought(text){text=text.trim();if(!text)return;const a=Math.random()*Math.PI*2,r=70+Math.random()*Math.min(innerWidth,innerHeight)*.28;thoughts.push({text,x:innerWidth/2+Math.cos(a)*r,y:innerHeight*.38+Math.sin(a)*r*.62,created:Date.now()});save();input.value='';nudge.style.display='none';draw()}
-function draw(){ctx.clearRect(0,0,innerWidth,innerHeight);for(let i=0;i<thoughts.length;i++)for(let j=i+1;j<thoughts.length;j++){const a=thoughts[i],b=thoughts[j],d=Math.hypot(a.x-b.x,a.y-b.y);if(d<240){ctx.strokeStyle='rgba(185,197,222,'+(0.14*(1-d/240))+')';ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}thoughts.forEach(t=>{ctx.beginPath();ctx.arc(t.x,t.y,5,0,Math.PI*2);ctx.fillStyle='#d44c5c';ctx.shadowColor='#d44c5c';ctx.shadowBlur=14;ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#e4e8f1';ctx.font='13px system-ui';ctx.fillText(t.text.length>42?t.text.slice(0,42)+'…':t.text,t.x+11,t.y+4)})}
-document.getElementById('add').onclick=()=>addThought(input.value);
-input.addEventListener('input',()=>{clearTimeout(nudgeTimer);nudge.style.display='none';if(quiet||!input.value.trim())return;nudgeTimer=setTimeout(()=>{const p=['What made that thought come up?','Keep following that thread.','What happened next?','Is there something connected to that?','You can stay with that thought for a minute.'];nudge.textContent=p[Math.floor(Math.random()*p.length)];nudge.style.display='block'},4500)});
-quietBtn.onclick=()=>{quiet=!quiet;quietBtn.classList.toggle('active',quiet);quietBtn.textContent=quiet?'Listening mode ON':"Don't interrupt";status.textContent=quiet?'Quiet until you turn it off.':'Ready';if(quiet)nudge.style.display='none'};
-document.getElementById('clear').onclick=()=>{if(confirm('Clear all thoughts saved on this device?')){thoughts=[];save();draw()}};
-const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(SpeechRecognition){recognition=new SpeechRecognition();recognition.lang='en-US';recognition.continuous=true;recognition.interimResults=true;
-recognition.onstart=()=>{listening=true;voice.textContent='Stop talking';status.textContent='Listening…'};
-recognition.onend=()=>{listening=false;voice.textContent='Talk';if(!quiet)status.textContent='Ready'};
-recognition.onerror=e=>{listening=false;voice.textContent='Talk';status.textContent=e.error==='not-allowed'?'Microphone permission denied.':'Voice error: '+e.error};
-recognition.onresult=e=>{let s='';for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)s+=e.results[i][0].transcript+' ';if(s){input.value+=(input.value?' ':'')+s.trim();input.dispatchEvent(new Event('input'))}};
-voice.onclick=()=>{try{listening?recognition.stop():recognition.start()}catch(e){}}}
-else{voice.textContent='Voice unavailable';voice.disabled=true;status.textContent='Type a thought to begin.'}
-addEventListener('resize',resize);resize();
-</script></body></html>
+(() => {
+const $ = id => document.getElementById(id);
+const board = $('board'), lines = $('lines');
+let thoughts = [], links = [], selected = [], nextId = 1, drag = null;
+const saved = (()=>{try{return JSON.parse(localStorage.getItem('red-thread-data')||'null')}catch(e){return null}})();
+if(saved){thoughts=saved.thoughts||[];links=saved.links||[];nextId=saved.nextId||1;}
+function persist(){try{localStorage.setItem('red-thread-data',JSON.stringify({thoughts,links,nextId}))}catch(e){}}
+function status(s){$('status').textContent=s}
+function pos(t){return {x:t.x*board.clientWidth,y:t.y*board.clientHeight}}
+function draw(){
+  board.querySelectorAll('.node').forEach(n=>n.remove());
+  const w=board.clientWidth,h=board.clientHeight;
+  thoughts.forEach(t=>{
+    const el=document.createElement('div');el.className='node'+(selected.includes(t.id)?' selected':'');el.dataset.id=t.id;
+    el.innerHTML='<span class="dot"></span>';el.append(document.createTextNode(t.text));
+    const p=pos(t);el.style.left=Math.max(0,Math.min(w-140,p.x-70))+'px';el.style.top=Math.max(0,Math.min(h-70,p.y-35))+'px';
+    el.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;drag={id:t.id,startX:e.clientX,startY:e.clientY,origX:t.x,origY:t.y,moved:false};el.setPointerCapture?.(e.pointerId)});
+    el.addEventListener('pointermove',e=>{if(!drag||drag.id!==t.id)return;const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;if(drag.moved){t.x=Math.max(.08,Math.min(.92,drag.origX+dx/w));t.y=Math.max(.1,Math.min(.9,drag.origY+dy/h));const p2=pos(t);el.style.left=(p2.x-70)+'px';el.style.top=(p2.y-35)+'px';renderLines()}});
+    el.addEventListener('pointerup',()=>{if(!drag||drag.id!==t.id)return;const moved=drag.moved;drag=null;if(moved){persist();draw()}else toggle(t.id)});
+    board.append(el);
+  });
+  $('thoughtList').innerHTML='';
+  thoughts.forEach(t=>{const row=document.createElement('div');row.className='thought';const body=document.createElement('div');body.className='body';body.textContent=t.text;const del=document.createElement('button');del.className='danger';del.textContent='Delete';del.onclick=()=>{thoughts=thoughts.filter(x=>x.id!==t.id);links=links.filter(l=>l.a!==t.id&&l.b!==t.id);selected=selected.filter(id=>id!==t.id);persist();draw();status('Thought deleted.')};row.append(body,del);$('thoughtList').append(row)});
+  renderLines();
+}
+function renderLines(){
+  lines.innerHTML='';const rect=board.getBoundingClientRect();
+  links.forEach(l=>{const a=thoughts.find(t=>t.id===l.a),b=thoughts.find(t=>t.id===l.b);if(!a||!b)return;const p=pos(a),q=pos(b);const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('x1',p.x);line.setAttribute('y1',p.y);line.setAttribute('x2',q.x);line.setAttribute('y2',q.y);line.setAttribute('stroke','#e14e58');line.setAttribute('stroke-width','2');line.setAttribute('stroke-opacity','.8');lines.append(line)});
+}
+function toggle(id){selected=selected.includes(id)?selected.filter(x=>x!==id):[...selected,id].slice(-2);draw();status(selected.length===2?'Two thoughts selected. Tap “Connect two thoughts” to link them.':selected.length===1?'One thought selected. Select another to connect them.':'Selection cleared.')}
+$('addBtn').onclick=()=>{const text=$('thoughtInput').value.trim();if(!text){status('Add a thought first. Empty space is already well represented.');return}const i=thoughts.length;thoughts.push({id:nextId++,text,x:.22+(i%3)*.28,y:.22+(Math.floor(i/3)%3)*.25});$('thoughtInput').value='';persist();draw();status('Thought added. Follow the thread wherever it goes.')};
+$('connectBtn').onclick=()=>{if(selected.length!==2){status('Select two thoughts first.');return}if(!links.some(l=>(l.a===selected[0]&&l.b===selected[1])||(l.a===selected[1]&&l.b===selected[0]))){links.push({a:selected[0],b:selected[1]});persist()}selected=[];draw();status('Connection added.')};
+$('clearSelectionBtn').onclick=()=>{selected=[];draw();status('Selection cleared.')};
+window.addEventListener('resize',draw);draw();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
